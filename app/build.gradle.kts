@@ -65,13 +65,13 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth:22.1.2")
-    implementation("androidx.navigation:navigation-compose:2.7.5")
-    implementation("androidx.activity:activity-compose:1.7.2")
-    implementation("androidx.compose.ui:ui:1.5.0")
-    implementation("androidx.compose.material:material:1.5.0")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.5.0")
-    implementation("androidx.compose.material:material-icons-extended:1.5.0")
+    implementation("com.google.firebase:firebase-auth:23.2.0")
+    implementation("androidx.navigation:navigation-compose:2.9.0")
+    implementation(libs.androidx.activity.compose.v172)
+    implementation("androidx.compose.ui:ui:1.8.1")
+    implementation("androidx.compose.material:material:1.8.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.8.1")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
 
 }
