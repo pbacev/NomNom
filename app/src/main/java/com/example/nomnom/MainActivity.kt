@@ -21,6 +21,10 @@ import androidx.navigation.compose.*
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,15 +56,34 @@ fun MyApp(startDestination: String, isDarkTheme: Boolean, toggleTheme: () -> Uni
 @Composable
 fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkTheme: Boolean) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+    // Collect the stored RememberMe value as State
+    val rememberMeFlow = RememberMeManager.getRememberMe(context)
+    val rememberMeFromStore by rememberMeFlow.collectAsState(initial = false)
+
+    // Local mutable state for checkbox, synced with stored value
+    var rememberMe by remember { mutableStateOf(rememberMeFromStore) }
+    LaunchedEffect(rememberMeFromStore) {
+        rememberMe = rememberMeFromStore
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Login", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             TextField(
                 value = email,
@@ -68,8 +91,7 @@ fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkThe
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             TextField(
                 value = password,
@@ -78,17 +100,42 @@ fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkThe
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                        Icon(
+                            imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (showPassword) "Hide password" else "Show password"
+                        )
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = rememberMe,
+                    onCheckedChange = {
+                        rememberMe = it
+                        scope.launch {
+                            RememberMeManager.setRememberMe(context, it)
+                        }
+                    }
+                )
+                Text("Remember Me")
             }
 
-            Spacer(Modifier.height(8.dp))
+            errorMessage?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -100,7 +147,12 @@ fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkThe
                     FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                navController.navigate("home")
+                                scope.launch {
+                                    RememberMeManager.setRememberMe(context, rememberMe)
+                                }
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
                             } else {
                                 errorMessage = "Login failed: ${task.exception?.message}"
                             }
@@ -110,6 +162,8 @@ fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkThe
             ) {
                 Text("Login")
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick = { navController.navigate("signup") }) {
                 Text("Don't have an account? Sign Up")
@@ -121,6 +175,8 @@ fun LoginScreen(navController: NavController, toggleTheme: () -> Unit, isDarkThe
         }
     }
 }
+
+
 
 @Composable
 fun SignUpScreen(navController: NavController) {
@@ -200,3 +256,16 @@ fun HomeScreen() {
         Text("Welcome to Home Screen")
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    MaterialTheme {
+        LoginScreen(
+            navController = rememberNavController(),
+            toggleTheme = {},
+            isDarkTheme = false
+        )
+    }
+}
+
