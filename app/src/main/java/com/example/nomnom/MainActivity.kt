@@ -1,4 +1,4 @@
-package com.example.nomnom
+    package com.example.nomnom
 
 import android.app.Activity
 import android.content.Intent
@@ -27,6 +27,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.*
 import kotlinx.coroutines.launch
+
+
+
 
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -76,7 +79,10 @@ fun MyApp(
             )
         }
         composable("signup") { SignUpScreen(navController) }
-        composable("home") { HomeScreen() }
+        composable("home") {
+            HomeScreen(navController)
+        }
+
     }
 }
 
@@ -225,6 +231,33 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            Button(
+                onClick = {
+                    FirebaseAuth.getInstance().signInAnonymously()
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Anonymous sign-in failed: ${task.exception?.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                Text("Continue as Guest")
+            }
+
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             TextButton(onClick = { navController.navigate("signup") }) {
                 Text("Don't have an account? Sign Up")
             }
@@ -245,7 +278,9 @@ fun SignUpScreen(navController: NavController) {
     var showPassword by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp), contentAlignment = Alignment.Center) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TextField(
                 value = email,
@@ -308,7 +343,7 @@ fun SignUpScreen(navController: NavController) {
 }
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -318,7 +353,9 @@ fun HomeScreen() {
             Button(onClick = {
                 auth.signOut()
                 Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
-                // You may want to navigate back to login here
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true }
+                }
             }) {
                 Text("Sign Out")
             }
