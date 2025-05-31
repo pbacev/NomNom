@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
 
         callbackManager = CallbackManager.Factory.create()
 
+
+
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -76,6 +78,7 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         callbackManager.onActivityResult(requestCode, resultCode, data)
     }
+
 }
 
 @Composable
@@ -111,7 +114,8 @@ fun LoginScreen(
     toggleTheme: () -> Unit,
     isDarkTheme: Boolean,
     googleSignInClient: GoogleSignInClient,
-    callbackManager = CallbackManager
+    callbackManager: CallbackManager
+
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -122,7 +126,41 @@ fun LoginScreen(
     val rememberMeState = RememberMeManager.getRememberMe(context).collectAsState(initial = false)
     val rememberMe = rememberMeState.value
     val auth = FirebaseAuth.getInstance()
+    val activity = context as Activity
 
+
+
+    DisposableEffect(Unit) {
+        val callback = object : FacebookCallback<LoginResult> {
+            override fun onSuccess(result: LoginResult) {
+                val credential = FacebookAuthProvider.getCredential(result.accessToken.token)
+                FirebaseAuth.getInstance().signInWithCredential(credential)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            errorMessage = "Facebook login failed: ${task.exception?.message}"
+                        }
+                    }
+            }
+
+            override fun onCancel() {
+                Toast.makeText(context, "Facebook login canceled", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onError(error: FacebookException) {
+                errorMessage = "Facebook login error: ${error.message}"
+            }
+        }
+
+        LoginManager.getInstance().registerCallback(callbackManager, callback)
+
+        onDispose {
+            LoginManager.getInstance().unregisterCallback(callbackManager)
+        }
+    }
 
 
 
@@ -255,39 +293,16 @@ fun LoginScreen(
             Button(
                 onClick = {
                     LoginManager.getInstance().logInWithReadPermissions(
-                        context as Activity,
+                        activity,
                         listOf("email", "public_profile")
                     )
-
-                    LoginManager.getInstance().registerCallback(callbackManager,
-                        object : FacebookCallback<LoginResult> {
-                            override fun onSuccess(loginResult: LoginResult) {
-                                val credential = FacebookAuthProvider.getCredential(loginResult.accessToken.token)
-                                FirebaseAuth.getInstance().signInWithCredential(credential)
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            navController.navigate("home") {
-                                                popUpTo("login") { inclusive = true }
-                                            }
-                                        } else {
-                                            errorMessage = "Facebook Auth failed: ${task.exception?.message}"
-                                        }
-                                    }
-                            }
-
-                            override fun onCancel() {
-                                errorMessage = "Facebook login cancelled"
-                            }
-
-                            override fun onError(error: FacebookException) {
-                                errorMessage = "Facebook login failed: ${error.message}"
-                            }
-                        })
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Login with Facebook")
             }
+
+
 
             Spacer(modifier = Modifier.height(8.dp))
 
