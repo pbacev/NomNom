@@ -27,16 +27,28 @@ import com.google.android.gms.common.api.ApiException
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.*
 import kotlinx.coroutines.launch
+import com.facebook.FacebookSdk
+import com.facebook.appevents.AppEventsLogger
+import com.facebook.CallbackManager
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
 
 
 
 
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
+    lateinit var callbackManager: CallbackManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        FacebookSdk.sdkInitialize(applicationContext)
+        AppEventsLogger.activateApp(application)
+
+        callbackManager = CallbackManager.Factory.create()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -54,10 +66,15 @@ class MainActivity : ComponentActivity() {
                     startDestination = if (user != null) "home" else "login",
                     isDarkTheme = isDarkTheme,
                     toggleTheme = { isDarkTheme = !isDarkTheme },
-                    googleSignInClient = googleSignInClient
+                    googleSignInClient = googleSignInClient,
+                    callbackManager = callbackManager
                 )
             }
         }
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        callbackManager.onActivityResult(requestCode, resultCode, data)
     }
 }
 
@@ -66,7 +83,8 @@ fun MyApp(
     startDestination: String,
     isDarkTheme: Boolean,
     toggleTheme: () -> Unit,
-    googleSignInClient: GoogleSignInClient
+    googleSignInClient: GoogleSignInClient,
+    callbackManager: CallbackManager
 ) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = startDestination) {
@@ -75,7 +93,8 @@ fun MyApp(
                 navController = navController,
                 toggleTheme = toggleTheme,
                 isDarkTheme = isDarkTheme,
-                googleSignInClient = googleSignInClient
+                googleSignInClient = googleSignInClient,
+                callbackManager = callbackManager
             )
         }
         composable("signup") { SignUpScreen(navController) }
@@ -91,7 +110,8 @@ fun LoginScreen(
     navController: NavController,
     toggleTheme: () -> Unit,
     isDarkTheme: Boolean,
-    googleSignInClient: GoogleSignInClient
+    googleSignInClient: GoogleSignInClient,
+    callbackManager = CallbackManager
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -101,6 +121,7 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val rememberMeState = RememberMeManager.getRememberMe(context).collectAsState(initial = false)
     val rememberMe = rememberMeState.value
+    val auth = FirebaseAuth.getInstance()
 
 
 
@@ -227,6 +248,45 @@ fun LoginScreen(
                 launcher.launch(signInIntent)
             }, modifier = Modifier.fillMaxWidth()) {
                 Text("Sign in with Google")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    LoginManager.getInstance().logInWithReadPermissions(
+                        context as Activity,
+                        listOf("email", "public_profile")
+                    )
+
+                    LoginManager.getInstance().registerCallback(callbackManager,
+                        object : FacebookCallback<LoginResult> {
+                            override fun onSuccess(loginResult: LoginResult) {
+                                val credential = FacebookAuthProvider.getCredential(loginResult.accessToken.token)
+                                FirebaseAuth.getInstance().signInWithCredential(credential)
+                                    .addOnCompleteListener { task ->
+                                        if (task.isSuccessful) {
+                                            navController.navigate("home") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        } else {
+                                            errorMessage = "Facebook Auth failed: ${task.exception?.message}"
+                                        }
+                                    }
+                            }
+
+                            override fun onCancel() {
+                                errorMessage = "Facebook login cancelled"
+                            }
+
+                            override fun onError(error: FacebookException) {
+                                errorMessage = "Facebook login failed: ${error.message}"
+                            }
+                        })
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Login with Facebook")
             }
 
             Spacer(modifier = Modifier.height(8.dp))

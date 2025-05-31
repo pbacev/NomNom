@@ -74,6 +74,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation ("com.google.android.gms:play-services-auth:20.6.0")
+    implementation ("com.facebook.android:facebook-android-sdk:18.0.3")
+
 
 
 
