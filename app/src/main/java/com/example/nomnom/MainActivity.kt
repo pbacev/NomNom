@@ -1,7 +1,11 @@
     package com.example.nomnom
 
 import android.app.Activity
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -42,12 +46,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Logout
 import com.google.firebase.firestore.ktx.toObject
+import android.content.Context
+
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+
+
+
+
 
 
 
     sealed class Screen(val route: String) {
         object Home : Screen("home")
         object AddRecipe : Screen("add_recipe")
+    }
+
+    fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val name = "NomNomChannel"
+            val descriptionText = "Channel for recipe notifications"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel("NOMNOM_CHANNEL_ID", name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
     }
 
 class MainActivity : ComponentActivity() {
@@ -59,6 +85,7 @@ class MainActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
         FacebookSdk.sdkInitialize(applicationContext)
         AppEventsLogger.activateApp(application)
+        createNotificationChannel(this)
 
         callbackManager = CallbackManager.Factory.create()
 
@@ -116,14 +143,16 @@ fun MyApp(
         composable("home") {
             HomeScreen(navController)
         }
-        composable("add_recipe") {  // Add this new composable
+        composable("add_recipe") {
             AddRecipeScreen(navController)
 
     }
 }
 }
 
-@Composable
+
+
+    @Composable
 fun LoginScreen(
     navController: NavController,
     toggleTheme: () -> Unit,
@@ -433,30 +462,18 @@ fun SignUpScreen(navController: NavController) {
 }
 
     @Composable
-    fun HomeScreen(navController: NavController) {
+    fun HomeScreen(
+        navController: NavController
+    ) {
         val context = LocalContext.current
+        val factory = RecipeViewModelFactory(context.applicationContext as Application)
+        val viewModel: RecipeViewModel = viewModel(factory = factory)
+
         val auth = FirebaseAuth.getInstance()
-        val db = FirebaseFirestore.getInstance()
 
-        // Hold recipes from Firestore
-        var recipes by remember { mutableStateOf<List<Recipes>>(emptyList()) }
-        var isLoading by remember { mutableStateOf(true) }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
-
-        // Fetch data from Firestore when the composable loads
-        LaunchedEffect(Unit) {
-            db.collection("recipes")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    val list = snapshot.documents.mapNotNull { it.toObject<Recipes>() }
-                    recipes = list
-                    isLoading = false
-                }
-                .addOnFailureListener { exception ->
-                    errorMessage = exception.message
-                    isLoading = false
-                }
-        }
+        val recipes by viewModel.recipes.collectAsState()
+        val isLoading by viewModel.isLoading.collectAsState()
+        val errorMessage by viewModel.errorMessage.collectAsState()
 
         Scaffold(
             floatingActionButton = {
@@ -525,25 +542,70 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 
+
+
+
+
     @Composable
     fun AddRecipeScreen(navController: NavController) {
+        val context = LocalContext.current
+        val titleState = remember { mutableStateOf("") }
+        val descriptionState = remember { mutableStateOf("") }
+
+        val db = FirebaseFirestore.getInstance()
+
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Add a New Recipe", style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.height(16.dp))
-                // TODO: Add recipe input fields here
+
+                OutlinedTextField(
+                    value = titleState.value,
+                    onValueChange = { titleState.value = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = descriptionState.value,
+                    onValueChange = { descriptionState.value = it },
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(onClick = {
-                    // Just navigate back to Home for now
-                    navController.popBackStack()
+                    val newId = db.collection("recipes").document().id
+                    val recipe = Recipes(
+                        id = newId,
+                        title = titleState.value,
+                        description = descriptionState.value
+                    )
+
+                    db.collection("recipes")
+                        .document(newId)
+                        .set(recipe)
+                        .addOnSuccessListener {
+                            Toast.makeText(context, "Recipe added", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Failed to add recipe", Toast.LENGTH_SHORT).show()
+                        }
                 }) {
                     Text("Save")
                 }
             }
         }
     }
+
 
 
