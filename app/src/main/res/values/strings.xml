@@ -2,5 +2,27 @@
     <string name="app_name">NomNom</string>
     <string name="facebook_app_id">1632231607437741</string>
     <string name="facebook_client_token">f8b75314260c7255166dc8423782277a</string>
+    <string name="login_headline">Login</string>
+    <string name="email_input_login">Email</string>
+    <string name="password_input_login">Password</string>
+    <string name="remember_me_checkbox">Remember Me</string>
+    <string name="login_button_login">Login</string>
+    <string name="sign_in_with_google_login">Sign in with Google</string>
+    <string name="login_with_facebook_login">Login with Facebook</string>
+    <string name="continue_as_guest_button">Continue as Guest</string>
+    <string name="sign_up_button">Don\'t have an account? Sign Up</string>
+    <string name="switch_to_light_theme">Switch to Light Theme</string>
+    <string name="switch_to_dark_theme">Switch to Dark Theme</string>
+    <string name="email_input_sign_up">Email</string>
+    <string name="password_1_sign_up">Password</string>
+    <string name="confirm_password_sign_up">Confirm Password</string>
+    <string name="sign_up_button_register">Sign Up</string>
+    <string name="signed_out_popup">Signed out</string>
+    <string name="add_a_new_recipe">Add a New Recipe</string>
+    <string name="title_recipe">Title</string>
+    <string name="description_recipe">Description</string>
+    <string name="recipe_added_popup">Recipe added</string>
+    <string name="failed_to_add_recipe_popup">Failed to add recipe</string>
+    <string name="save_button_recipe">Save</string>
 
 </resources>

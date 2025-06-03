@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NomNom</string>
+    <string name="facebook_app_id">1632231607437741</string>
+    <string name="facebook_client_token">f8b75314260c7255166dc8423782277a</string>
+    <string name="login_headline">Најава</string>
+    <string name="email_input_login">Email</string>
+    <string name="password_input_login">Лозинка</string>
+    <string name="remember_me_checkbox">Запомни ме</string>
+    <string name="login_button_login">Најави се</string>
+    <string name="sign_in_with_google_login">Најави се со Google</string>
+    <string name="login_with_facebook_login">Најави се со Facebook</string>
+    <string name="continue_as_guest_button">Анонимна Најава</string>
+    <string name="sign_up_button">Немате налог? Регистрирај се!</string>
+    <string name="switch_to_light_theme">Префрли на светла тема</string>
+    <string name="switch_to_dark_theme">Префрли на темна тема</string>
+    <string name="email_input_sign_up">Внесете email</string>
+    <string name="password_1_sign_up">Внесете лозинка</string>
+    <string name="confirm_password_sign_up">Потврдете лозинка</string>
+    <string name="sign_up_button_register">Регистрирај се</string>
+    <string name="signed_out_popup">Одјавени сте</string>
+    <string name="add_a_new_recipe">Додадете нов рецепт</string>
+    <string name="title_recipe">Наслов</string>
+    <string name="description_recipe">Опис</string>
+    <string name="recipe_added_popup">Рецептот е внесен</string>
+    <string name="failed_to_add_recipe_popup">Рецептот не е внесен</string>
+    <string name="save_button_recipe">Зачувај</string>
+
+</resources>

@@ -47,6 +47,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Logout
 import com.google.firebase.firestore.ktx.toObject
 import android.content.Context
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -246,13 +248,13 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.login_headline), style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
 
             TextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_input_login)) },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -260,7 +262,7 @@ fun LoginScreen(
             TextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_input_login)) },
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
@@ -288,7 +290,7 @@ fun LoginScreen(
                 )
 
 
-                Text("Remember Me")
+                Text(stringResource(R.string.remember_me_checkbox))
             }
 
             errorMessage?.let {
@@ -320,7 +322,7 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Login")
+                Text(stringResource(R.string.login_button_login))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -329,7 +331,7 @@ fun LoginScreen(
                 val signInIntent = googleSignInClient.signInIntent
                 launcher.launch(signInIntent)
             }, modifier = Modifier.fillMaxWidth()) {
-                Text("Sign in with Google")
+                Text(stringResource(R.string.sign_in_with_google_login))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -343,7 +345,7 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Login with Facebook")
+                Text(stringResource(R.string.login_with_facebook_login))
             }
 
 
@@ -371,18 +373,21 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                Text("Continue as Guest")
+                Text(stringResource(R.string.continue_as_guest_button))
             }
 
 
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(onClick = { navController.navigate("signup") }) {
-                Text("Don't have an account? Sign Up")
+                Text(stringResource(R.string.sign_up_button))
             }
 
             TextButton(onClick = toggleTheme) {
-                Text(if (isDarkTheme) "Switch to Light Theme" else "Switch to Dark Theme")
+                Text(if (isDarkTheme) stringResource(R.string.switch_to_light_theme) else stringResource(
+                    R.string.switch_to_dark_theme
+                )
+                )
             }
         }
     }
@@ -404,13 +409,13 @@ fun SignUpScreen(navController: NavController) {
             TextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email_input_sign_up)) },
                 modifier = Modifier.fillMaxWidth()
             )
             TextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password_1_sign_up)) },
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { showPassword = !showPassword }) {
@@ -425,7 +430,7 @@ fun SignUpScreen(navController: NavController) {
             TextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
-                label = { Text("Confirm Password") },
+                label = { Text(stringResource(R.string.confirm_password_sign_up)) },
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -455,7 +460,7 @@ fun SignUpScreen(navController: NavController) {
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Sign Up")
+                Text(stringResource(R.string.sign_up_button_register))
             }
         }
     }
@@ -526,7 +531,8 @@ fun SignUpScreen(navController: NavController) {
                 FloatingActionButton(
                     onClick = {
                         auth.signOut()
-                        Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.signed_out_popup), Toast.LENGTH_SHORT).show()
                         navController.navigate("login") {
                             popUpTo("home") { inclusive = true }
                         }
@@ -561,13 +567,13 @@ fun SignUpScreen(navController: NavController) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Add a New Recipe", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.add_a_new_recipe), style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = titleState.value,
                     onValueChange = { titleState.value = it },
-                    label = { Text("Title") },
+                    label = { Text(stringResource(R.string.title_recipe)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -576,7 +582,7 @@ fun SignUpScreen(navController: NavController) {
                 OutlinedTextField(
                     value = descriptionState.value,
                     onValueChange = { descriptionState.value = it },
-                    label = { Text("Description") },
+                    label = { Text(stringResource(R.string.description_recipe)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -594,18 +600,22 @@ fun SignUpScreen(navController: NavController) {
                         .document(newId)
                         .set(recipe)
                         .addOnSuccessListener {
-                            Toast.makeText(context, "Recipe added", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.recipe_added_popup), Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
                         }
                         .addOnFailureListener {
-                            Toast.makeText(context, "Failed to add recipe", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context,
+                                context.getString(R.string.failed_to_add_recipe_popup), Toast.LENGTH_SHORT).show()
                         }
                 }) {
-                    Text("Save")
+                    Text(stringResource(R.string.save_button_recipe))
                 }
             }
         }
     }
+
+
 
 
 
