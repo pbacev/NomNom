@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -34,9 +35,20 @@ import com.facebook.login.LoginManager
 import com.facebook.login.LoginResult
 import com.facebook.FacebookCallback
 import com.facebook.FacebookException
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Logout
+import com.google.firebase.firestore.ktx.toObject
 
 
 
+    sealed class Screen(val route: String) {
+        object Home : Screen("home")
+        object AddRecipe : Screen("add_recipe")
+    }
 
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -104,8 +116,11 @@ fun MyApp(
         composable("home") {
             HomeScreen(navController)
         }
+        composable("add_recipe") {  // Add this new composable
+            AddRecipeScreen(navController)
 
     }
+}
 }
 
 @Composable
@@ -417,24 +432,118 @@ fun SignUpScreen(navController: NavController) {
     }
 }
 
-@Composable
-fun HomeScreen(navController: NavController) {
-    val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Welcome to Home Screen")
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                auth.signOut()
-                Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+    @Composable
+    fun HomeScreen(navController: NavController) {
+        val context = LocalContext.current
+        val auth = FirebaseAuth.getInstance()
+        val db = FirebaseFirestore.getInstance()
+
+        // Hold recipes from Firestore
+        var recipes by remember { mutableStateOf<List<Recipes>>(emptyList()) }
+        var isLoading by remember { mutableStateOf(true) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+
+        // Fetch data from Firestore when the composable loads
+        LaunchedEffect(Unit) {
+            db.collection("recipes")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val list = snapshot.documents.mapNotNull { it.toObject<Recipes>() }
+                    recipes = list
+                    isLoading = false
                 }
-            }) {
-                Text("Sign Out")
+                .addOnFailureListener { exception ->
+                    errorMessage = exception.message
+                    isLoading = false
+                }
+        }
+
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = {
+                    navController.navigate("add_recipe")
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Recipe")
+                }
+            },
+            floatingActionButtonPosition = FabPosition.End,
+        ) { paddingValues ->
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    isLoading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    errorMessage != null -> {
+                        Text(
+                            text = "Error loading recipes: $errorMessage",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(recipes) { recipe ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text(text = recipe.title, style = MaterialTheme.typography.titleMedium)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = {
+                        auth.signOut()
+                        Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    containerColor = MaterialTheme.colorScheme.error
+                ) {
+                    Icon(Icons.Default.Logout, contentDescription = "Sign Out")
+                }
             }
         }
     }
-}
+
+    @Composable
+    fun AddRecipeScreen(navController: NavController) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Add a New Recipe", style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                // TODO: Add recipe input fields here
+
+                Button(onClick = {
+                    // Just navigate back to Home for now
+                    navController.popBackStack()
+                }) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+
 

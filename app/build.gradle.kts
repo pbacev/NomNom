@@ -41,7 +41,9 @@ android {
 }
 
 dependencies {
+    // Other dependencies ...
 
+    // Compose dependencies
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -50,11 +52,27 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
-    implementation(libs.play.services.measurement.api)
-    implementation(libs.firebase.common.ktx)
     implementation(libs.androidx.navigation.compose.android)
+    implementation(libs.androidx.activity.compose.v172)
+    implementation("androidx.compose.ui:ui:1.8.1")
+    implementation("androidx.compose.material:material:1.8.1")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.8.1")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Firebase BOM and Firebase dependencies (only once)
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // Google Play Services auth (for Google Sign-In)
+    implementation("com.google.android.gms:play-services-auth:20.6.0")
+
+    // Facebook SDK
+    implementation("com.facebook.android:facebook-android-sdk:18.0.3")
+
+    // Testing dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -62,25 +80,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth:23.2.0")
-    implementation("androidx.navigation:navigation-compose:2.9.0")
-    implementation(libs.androidx.activity.compose.v172)
-    implementation("androidx.compose.ui:ui:1.8.1")
-    implementation("androidx.compose.material:material:1.8.1")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.8.1")
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation ("com.google.android.gms:play-services-auth:20.6.0")
-    implementation ("com.facebook.android:facebook-android-sdk:18.0.3")
-
-
-
-
-
-
 }
+
 
 apply(plugin = "com.google.gms.google-services")
