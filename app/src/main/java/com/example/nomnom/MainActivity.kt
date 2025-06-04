@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Build
+import androidx.compose.ui.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -47,6 +48,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Logout
 import com.google.firebase.firestore.ktx.toObject
 import android.content.Context
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 
@@ -466,6 +469,7 @@ fun SignUpScreen(navController: NavController) {
     }
 }
 
+
     @Composable
     fun HomeScreen(
         navController: NavController
@@ -475,10 +479,15 @@ fun SignUpScreen(navController: NavController) {
         val viewModel: RecipeViewModel = viewModel(factory = factory)
 
         val auth = FirebaseAuth.getInstance()
+        val currentUserId = auth.currentUser?.uid.orEmpty()
 
         val recipes by viewModel.recipes.collectAsState()
         val isLoading by viewModel.isLoading.collectAsState()
         val errorMessage by viewModel.errorMessage.collectAsState()
+
+        var selectedTabIndex by remember { mutableStateOf(0) }
+
+        val tabTitles = listOf("All Recipes", "Favorites")
 
         Scaffold(
             floatingActionButton = {
@@ -491,58 +500,77 @@ fun SignUpScreen(navController: NavController) {
             floatingActionButtonPosition = FabPosition.End,
         ) { paddingValues ->
 
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                when {
-                    isLoading -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    }
-                    errorMessage != null -> {
-                        Text(
-                            text = "Error loading recipes: $errorMessage",
-                            modifier = Modifier.align(Alignment.Center)
+                // Tabs
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    tabTitles.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(title) }
                         )
                     }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(recipes) { recipe ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Text(text = recipe.title, style = MaterialTheme.typography.titleMedium)
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium)
-                                    }
+                }
+
+                // Content
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        isLoading -> {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        }
+
+                        errorMessage != null -> {
+                            Text(
+                                text = "Error loading recipes: $errorMessage",
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+
+                        else -> {
+                            val filteredRecipes = when (selectedTabIndex) {
+                                0 -> recipes
+                                1 -> recipes.filter { currentUserId in it.favoritedBy }
+                                else -> recipes
+                            }
+
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(filteredRecipes) { recipe ->
+                                    RecipeItem(
+                                        recipe = recipe,
+                                        currentUserId = currentUserId,
+                                        onFavoriteClick = { selectedRecipe ->
+                                            viewModel.toggleFavorite(selectedRecipe, currentUserId)
+                                        }
+                                    )
                                 }
                             }
                         }
                     }
-                }
 
-                FloatingActionButton(
-                    onClick = {
-                        auth.signOut()
-                        Toast.makeText(context,
-                            context.getString(R.string.signed_out_popup), Toast.LENGTH_SHORT).show()
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp),
-                    containerColor = MaterialTheme.colorScheme.error
-                ) {
-                    Icon(Icons.Default.Logout, contentDescription = "Sign Out")
+                    // Sign Out button
+                    FloatingActionButton(
+                        onClick = {
+                            auth.signOut()
+                            Toast.makeText(context, context.getString(R.string.signed_out_popup), Toast.LENGTH_SHORT).show()
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(16.dp),
+                        containerColor = MaterialTheme.colorScheme.error
+                    ) {
+                        Icon(Icons.Default.Logout, contentDescription = "Sign Out")
+                    }
                 }
             }
         }
@@ -615,6 +643,43 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 
+    @Composable
+    fun RecipeItem(
+        recipe: Recipes,
+        currentUserId: String,
+        onFavoriteClick: (Recipes) -> Unit
+    ) {
+        val isFavorited = recipe.favoritedBy.contains(currentUserId)
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = recipe.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    IconButton(onClick = { onFavoriteClick(recipe) }) {
+                        Icon(
+                            imageVector = if (isFavorited) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorited) "Unfavorite" else "Favorite",
+                            tint = if (isFavorited) Color.Red else LocalContentColor.current
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = recipe.description, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
 
 
 

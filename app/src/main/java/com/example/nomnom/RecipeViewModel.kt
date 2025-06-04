@@ -3,6 +3,7 @@ package com.example.nomnom
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,19 +27,52 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun refreshRecipes() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                // Sync from Firestore to local DB
-                repository.syncFromFirestore()
-                // Then get from local DB
-                val localRecipes = repository.getRecipes()
-                _recipes.value = localRecipes
-                _errorMessage.value = null
-            } catch (e: Exception) {
-                _errorMessage.value = e.message
+        _isLoading.value = true
+
+        FirebaseFirestore.getInstance()
+            .collection("recipes")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _errorMessage.value = error.message
+                    _isLoading.value = false
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val recipeList = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Recipes::class.java)?.copy(id = doc.id)
+                    }
+                    _recipes.value = recipeList
+                    _errorMessage.value = null
+                } else {
+                    _recipes.value = emptyList()
+                }
+
+                _isLoading.value = false
             }
-            _isLoading.value = false
-        }
     }
+
+
+    fun toggleFavorite(recipe: Recipes, userId: String) {
+        val newFavoritedBy = if (userId in recipe.favoritedBy) {
+            recipe.favoritedBy - userId
+        } else {
+            recipe.favoritedBy + userId
+        }
+
+        val updatedRecipe = recipe.copy(favoritedBy = newFavoritedBy)
+
+        FirebaseFirestore.getInstance()
+            .collection("recipes")
+            .document(recipe.id)
+            .set(updatedRecipe)
+            .addOnSuccessListener {
+                // optionally trigger reload if needed
+            }
+            .addOnFailureListener {
+                _errorMessage.value = it.message
+            }
+    }
+
+
 }
